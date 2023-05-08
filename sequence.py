@@ -15,13 +15,15 @@ class Sequence:
         else:
             self.cipher = cipher
         # decode the message using the cipher
-        self.decoded_sentence = ""
-        # create the decoded sentence
-        for character in encoded:
-            if character in self.cipher:
-                self.decoded_sentence += self.cipher[character]
-            else:
-                self.decoded_sentence += character
+        self.decoded_words = []
+        for word in encoded:
+            decoded_word = ""
+            for letter in word:
+                if letter in self.cipher:
+                    decoded_word += self.cipher[letter]
+                else:
+                    decoded_word += letter
+            self.decoded_words.append(decoded_word)
 
 
 
@@ -32,33 +34,35 @@ class Sequence:
             a, b = random.sample(keys, 2)
             # swap their values in the cipher
             self.cipher[a], self.cipher[b] = self.cipher[b], self.cipher[a]
-        self.decoded_sentence = ""
-        for character in encoded:
-            if character in self.cipher:
-                self.decoded_sentence += self.cipher[character]
-            else:
-                self.decoded_sentence += character
+        self.decoded_words = []
+        for word in encoded:
+            decoded_word = ""
+            for letter in word:
+                if letter in self.cipher:
+                    decoded_word += self.cipher[letter]
+                else:
+                    decoded_word += letter
+            self.decoded_words.append(decoded_word)
 
 
     def fitness(self, dict, letters_freq, couples_freq):
         score = 0.0
-        message = self.decoded_sentence.upper()
 
         # Score the frequency of individual letters
-        for letter in message:
-            if letter in letters_freq:
-                score += letters_freq[letter]
+        for word in self.decoded_words:
+            for letter in word:
+                if letter.upper() in letters_freq:
+                    score += letters_freq[letter.upper()]
 
         # Score the frequency of couples of letters
-        for i in range(len(message) - 1):
-            pair = message[i:i + 2]
-            if pair in couples_freq:
-                score += couples_freq[pair]
-        message.lower()
-        words = message.split()
-        for word in words:
+        for word in self.decoded_words:
+            for i in range(len(word) - 1):
+                pair = word[i:i + 2]
+                if pair.upper() in couples_freq:
+                    score += couples_freq[pair.upper()]
+        for word in self.decoded_words:
             if word in dict:
-                score += 5
+                score += 1
         self.score = score
         return score
 
