@@ -1,11 +1,10 @@
-import math
 from sequence import *
 
 MUTATION_RATE = 0.05
 alphabet = string.ascii_lowercase
-POPULATION_SIZE = 5000
+POPULATION_SIZE = 2000
 NUM_GENERATIONS = 100
-
+REPLICATION = 0.05
 
 def open_freq_files():
     letter_freq = {}
@@ -33,47 +32,50 @@ def open_freq_files():
     return dict, letter_freq, couples_freq
 
 
-def crossover(parent1, parent2):
-    midpoint = random.randint(0, len(parent1.decoded_sentence))
-    s1_left, s2_right = parent1.decoded_sentence[:midpoint], parent2.decoded_sentence[midpoint:]
-    child = s1_left + s2_right
+def crossover(parent1, parent2, encoded):
+    midpoint = random.randint(0, len(parent1.cipher))
     cipher = {}
-    for char in s1_left:
-        for k, v in parent1.cipher.items():
-            if v == char:
-                cipher[k] = v
-
-    for char in s2_right:
-        for k, v in parent2.cipher.items():
-            if v == char:
-                cipher[k] = v
-    seq = Sequence("")
-    seq.decoded_sentence = child
-    seq.cipher=cipher
+    keys1 = parent1.cipher.keys()
+    keys2 = parent2.cipher.keys()
+    for i in range(parent1.cipher):
+        if i < midpoint:
+            cipher[keys1[i]] = parent1.cipher[keys1[i]]
+        else:
+            cipher[keys2[i]] = parent2.cipher[keys2[i]]
+    seq = Sequence(encoded, cipher)
     return seq
 
 
 def run_genetic(encoded, dict, letter_freq, couples_freq):
     population = []
     for i in range(POPULATION_SIZE):
-        seq = Sequence(encoded)
+        # send the encoded message to the constructor and return a random solution with the text decoded.
+        seq = Sequence(encoded, None)
+        # add solution to the population.
         population.append(seq)
 
+    # run over the generations and try to improve the solution.
     for generation in range(NUM_GENERATIONS):
+        # give score to each solution in the population.
         fitness_scores = [seq.fitness(dict, letter_freq, couples_freq) for seq in population]
         offspring = []
-        for i in range(POPULATION_SIZE):
-            parent1 = None
-            parent2 = None
+        replicate_num = int(REPLICATION * POPULATION_SIZE)
+        fitness_scores_replicate = fitness_scores.copy()
+        for i in range(replicate_num):
+            # find the best solution in the population and add it to the offspring.
+            best_index = fitness_scores.index(max(fitness_scores_replicate))
+            offspring.append(population[best_index])
+            fitness_scores_replicate.remove(best_index)
+
+        for i in range(POPULATION_SIZE - replicate_num):
+            parent1 = random.choices(population, weights=fitness_scores)[0]
+            parent2 = random.choices(population, weights=fitness_scores)[0]
             while parent1 == parent2:
                 parent1 = random.choices(population, weights=fitness_scores)[0]
-                parent2 = random.choices(population, weights=fitness_scores)[0]
-            child = crossover(parent1, parent2)
-            while not child.check_bijection():
-                child = crossover(parent1, parent2)
+            # create a new solution by crossing over the parents.
+            child = crossover(parent1, parent2, encoded)
             child.mutate(encoded)
             offspring.append(child)
-
         # Replace population with offspring
         population = offspring
     for seq in population:

@@ -1,15 +1,22 @@
 import random
 import string
+
 MUTATION_RATE = 0.05
 alphabet = string.ascii_lowercase
 
 class Sequence:
-
-    def __init__(self, encoded):
-        shuffled_alphabet = random.sample(alphabet, len(alphabet))
-        self.cipher = dict(zip(alphabet, shuffled_alphabet))
-
+    def __init__(self, encoded, cipher):
+        self.score = 0.0
+        if cipher is None:
+            # create a random solution
+            shuffled_alphabet = random.sample(alphabet, len(alphabet))
+            # the cipher is a dictionary that maps each letter to another letter.
+            self.cipher = dict(zip(alphabet, shuffled_alphabet))
+        else:
+            self.cipher = cipher
+        # decode the message using the cipher
         self.decoded_sentence = ""
+        # create the decoded sentence
         for character in encoded:
             if character in self.cipher:
                 self.decoded_sentence += self.cipher[character]
@@ -18,8 +25,8 @@ class Sequence:
 
 
 
-    def mutate(self,encoded):
-        num_of_mutation= int(MUTATION_RATE * len(self.decoded_sentence))
+    def mutate(self, encoded):
+        num_of_mutation = int(MUTATION_RATE * len(self.cipher))
         for i in range(num_of_mutation):
             keys = list(self.cipher.keys())
             a, b = random.sample(keys, 2)
@@ -31,9 +38,6 @@ class Sequence:
                 self.decoded_sentence += self.cipher[character]
             else:
                 self.decoded_sentence += character
-
-
-
 
 
     def fitness(self, dict, letters_freq, couples_freq):
@@ -55,8 +59,10 @@ class Sequence:
         for word in words:
             if word in dict:
                 score += 5
+        self.score = score
         return score
 
+    # check if the cipher is a bijection.
     def check_bijection(self):
         # check that the cipher is still a bijection
         values = set()
@@ -65,12 +71,3 @@ class Sequence:
                 return False
             values.add(value)
         return True
-
-
-    # def fitness(self, dict, letter_freq, pair_freq):
-    #     words_in_sentence = self.decoded_sentence.split()
-    #     word_score = sum(1 for word in words_in_sentence if word in dict)
-    #     #letter_score = sum(letter_freq.get(letter.upper(), 0) for letter in self.decoded_sentence if letter.isalpha())
-    #     #pair_score = sum(pair_freq.get(self.decoded_sentence[i:i + 2].upper(), 0) for i in range(len(self.decoded_sentence) - 1) if
-    #                      #self.decoded_sentence[i:i + 2].isalpha())
-    #     return word_score
