@@ -2,7 +2,7 @@ from sequence import *
 
 MUTATION_RATE = 0.05
 alphabet = string.ascii_lowercase
-POPULATION_SIZE = 350
+POPULATION_SIZE = 100
 NUM_GENERATIONS = 300
 REPLICATION = 0.05
 
@@ -53,8 +53,36 @@ def crossover(parent1, parent2, encoded):
     for i, (key, value) in enumerate(parent2.cipher.items()):
         if key not in cipher:
             cipher[key] = value
+    char_appearances = {
+        "a": 0, "b": 0, "c": 0, "d": 0, "e": 0,
+        "f": 0, "g": 0, "h": 0, "i": 0, "j": 0,
+        "k": 0, "l": 0, "m": 0, "n": 0, "o": 0,
+        "p": 0, "q": 0, "r": 0, "s": 0, "t": 0,
+        "u": 0, "v": 0, "w": 0, "x": 0, "y": 0,
+        "z": 0
+    }
+    for i, (key, value) in enumerate(cipher.items()):
+        char_appearances[value] += 1
+    for i, (key, value) in enumerate(cipher.items()):
+        if char_appearances[value] > 1:
+            for char in alphabet:
+                if char_appearances[char] == 0:
+                    cipher[key] = char
+                    char_appearances[char] += 1
+                    char_appearances[value] -= 1
+                    break
     seq = Sequence(encoded, cipher)
     return seq
+
+
+def check_bijection(cipher):
+    # check that the cipher is still a bijection
+    values = set()
+    for value in cipher.values():
+        if value in values:
+            return False
+        values.add(value)
+    return True
 
 
 def run_genetic(encoded, dict, letter_freq, couples_freq):
@@ -90,7 +118,6 @@ def run_genetic(encoded, dict, letter_freq, couples_freq):
             offspring.append(child)
         # Replace population with offspring
         population = offspring
-
 
 
 if __name__ == '__main__':
