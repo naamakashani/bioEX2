@@ -21,8 +21,6 @@ class Sequence:
             for letter in word:
                 if letter in self.cipher:
                     decoded_word += self.cipher[letter]
-                else:
-                    decoded_word += letter
             self.decoded_words.append(decoded_word)
 
 
@@ -40,8 +38,6 @@ class Sequence:
             for letter in word:
                 if letter in self.cipher:
                     decoded_word += self.cipher[letter]
-                else:
-                    decoded_word += letter
             self.decoded_words.append(decoded_word)
 
 
