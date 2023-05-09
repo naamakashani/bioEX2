@@ -3,9 +3,10 @@ import matplotlib.pyplot as plt
 
 MUTATION_RATE = 0.05
 alphabet = string.ascii_lowercase
-POPULATION_SIZE = 300
-NUM_GENERATIONS = 300
+POPULATION_SIZE = 100
+NUM_GENERATIONS = 600
 REPLICATION = 0.05
+N = 5
 
 
 def open_freq_files():
@@ -88,8 +89,6 @@ def crossover(parent1, parent2, encoded):
     return seq
 
 
-
-
 def save_solution(best_sequence):
     # save the permutation in perm.txt file
     with open("perm.txt", 'w') as f:
@@ -110,41 +109,37 @@ def save_solution(best_sequence):
 
 
 def plot_max(max_scores):
-    # Create a figure and axis object
-    fig, ax = plt.subplots()
-    # Set the width of each bar
-    bar_width = 0.1
-    # Create two sets of bars for each iteration: one for max values, one for avg values
-    x_ticks = []
-    # Set the x-axis ticks to the iteration numbers
-    for i in range(1, len(max_scores) + 1):
-        x_ticks.append(i * 10)
-    # Create a figure and two axis objects for the two plots
-    ax.set_xticks(x_ticks)
-    ax.bar(x_ticks, max_scores, bar_width, label='Max')
-    ax.legend()
-    ax.set_xlabel('Iteration')
-    ax.set_ylabel('Value')
+    y_values = []
+    x_values = []
+    string_value = []
+    for i in range(0, len(max_scores), 10):
+        y_values.append(max_scores[i])
+        x_values.append(i)
+        string_value.append(str(i))
+
+    plt.bar(x_values, y_values, color='blue')
+    plt.xticks(x_values, string_value)
+    plt.xlabel('Iteration')
+    plt.ylabel('Value')
+    plt.title('Max scores in iterations')
     # Show the plot
     plt.show()
 
 
 def plot_average(average_scores):
-    # Create a figure and axis object
-    bar_width = 0.1
-    fig, ax = plt.subplots()
-    x_ticks = []
-    # Set the x-axis ticks to the iteration numbers
-    for i in range(1, len(average_scores) + 1):
-        x_ticks.append(i * 10)
-    # Create a figure and two axis objects for the two plots
-    ax.set_xticks(x_ticks)
-    ax.bar(x_ticks, average_scores, bar_width, label='Max')
+    y_values = []
+    x_values = []
+    string_value = []
+    for i in range(0, len(average_scores), 10):
+        y_values.append(average_scores[i])
+        x_values.append(i)
+        string_value.append(str(i))
 
-    ax.legend()
-    ax.set_xlabel('Iteration')
-    ax.set_ylabel('Value')
-
+    plt.bar(x_values, y_values, color='red')
+    plt.xticks(x_values, string_value)
+    plt.xlabel('Iteration')
+    plt.ylabel('Value')
+    plt.title('Average scores in iterations')
     # Show the plot
     plt.show()
 
@@ -162,22 +157,12 @@ def basic_genetic(encoded, dict, letter_freq, couples_freq):
     counter_not_changed = 0
 
     # run over the generations and try to improve the solution.
-    for generation in range(1, NUM_GENERATIONS + 1):
+    for generation in range(NUM_GENERATIONS):
         # give score to each solution in the population.
         fitness_scores = [seq.fitness(dict, letter_freq, couples_freq) for seq in population]
         # add the generation to the array that will be showned in the plot.
-        if generation % 10 == 0 and generation >= 10:
-            average_scores.append(sum(fitness_scores) // len(fitness_scores))
-            max_scores.append(max(fitness_scores))
-            counter += 1
-            if counter > 1:
-                # if the score not improve add 1 to counter
-                if max_scores[counter - 1] <= max_scores[counter - 2]:
-                    counter_not_changed += 1
-                if (counter_not_changed > 4):
-                    break
-                else:
-                    counter_not_changed = 0
+        average_scores.append(sum(fitness_scores) // len(fitness_scores))
+        max_scores.append(max(fitness_scores))
         offspring = []
         replicate_num = int(REPLICATION * POPULATION_SIZE)
         fitness_scores_replicate = fitness_scores.copy()
@@ -202,7 +187,7 @@ def basic_genetic(encoded, dict, letter_freq, couples_freq):
     save_solution(population[best_index])
     plot_max(max_scores)
     plot_average(average_scores)
-    return generation + 1
+    return generation + 2
 
 
 def darwin_genetic(encoded, dict, letter_freq, couples_freq):
@@ -218,22 +203,12 @@ def darwin_genetic(encoded, dict, letter_freq, couples_freq):
     counter_not_changed = 0
 
     # run over the generations and try to improve the solution.
-    for generation in range(1, NUM_GENERATIONS + 1):
+    for generation in range(NUM_GENERATIONS):
         # give score to each solution in the population.
         fitness_scores = [seq.fitness(dict, letter_freq, couples_freq) for seq in population]
         # add the generation to the array that will be showned in the plot.
-        if generation % 10 == 0 and generation >= 10:
-            average_scores.append(sum(fitness_scores) // len(fitness_scores))
-            max_scores.append(max(fitness_scores))
-            counter += 1
-            if counter > 1:
-                # if the score not improve add 1 to counter
-                if max_scores[counter - 1] <= max_scores[counter - 2]:
-                    counter_not_changed += 1
-                if (counter_not_changed > 4):
-                    break
-                else:
-                    counter_not_changed = 0
+        average_scores.append(sum(fitness_scores) // len(fitness_scores))
+        max_scores.append(max(fitness_scores))
         offspring = []
         replicate_num = int(REPLICATION * POPULATION_SIZE)
         fitness_scores_replicate = fitness_scores.copy()
@@ -249,7 +224,28 @@ def darwin_genetic(encoded, dict, letter_freq, couples_freq):
                 parent1 = random.choices(population, weights=fitness_scores)[0]
             # create a new solution by crossing over the parents.
             child = crossover(parent1, parent2, encoded)
-            child.mutate(encoded)
+
+            # save the child before make mutations
+            save_cipher = child.cipher
+            save_decode = child.decoded_words
+            temp_cipher = save_cipher
+            temp_decode = save_decode
+            fitness_before = child.fitness(dict, letter_freq, couples_freq)
+            for i in range(N):
+                # try to improve
+                child.mutate(encoded)
+                fitness_after = child.fitness(dict, letter_freq, couples_freq)
+                # if mutation not improve unmutate
+                if (fitness_before >= fitness_after):
+                    child.cipher = save_cipher
+                    child.decoded_words = save_decode
+                else:
+                    fitness_before = fitness_after
+                    save_cipher = child.cipher
+                    save_decode = child.decode
+            child.cipher = temp_cipher
+            child_decode = save_decode
+
             offspring.append(child)
         # Replace population with offspring
         population = offspring
@@ -258,7 +254,7 @@ def darwin_genetic(encoded, dict, letter_freq, couples_freq):
     save_solution(population[best_index])
     plot_max(max_scores)
     plot_average(average_scores)
-    return generation + 1
+    return generation + 2
 
 
 def lamark_genetic(encoded, dict, letter_freq, couples_freq):
@@ -270,26 +266,30 @@ def lamark_genetic(encoded, dict, letter_freq, couples_freq):
         population.append(seq)
     average_scores = []
     max_scores = []
-    counter = 0
-    counter_not_changed = 0
-
     # run over the generations and try to improve the solution.
-    for generation in range(1, NUM_GENERATIONS + 1):
-        # give score to each solution in the population.
-        fitness_scores = [seq.fitness(dict, letter_freq, couples_freq) for seq in population]
-        # add the generation to the array that will be showned in the plot.
-        if generation % 10 == 0 and generation >= 10:
-            average_scores.append(sum(fitness_scores) // len(fitness_scores))
-            max_scores.append(max(fitness_scores))
-            counter += 1
-            if counter > 1:
-                # if the score not improve add 1 to counter
-                if max_scores[counter - 1] <= max_scores[counter - 2]:
-                    counter_not_changed += 1
-                if (counter_not_changed > 4):
-                    break
+    for generation in range(NUM_GENERATIONS):
+        [seq.fitness(dict, letter_freq, couples_freq) for seq in population]
+        for seq in population:
+            save_cipher = seq.cipher
+            save_decode = seq.decoded_words
+            fitness_before = seq.score
+            for i in range(N):
+                # try to improve
+                seq.mutate(encoded)
+                seq.fitness(dict, letter_freq, couples_freq)
+                # if mutation not improve unmutate
+                if fitness_before >= seq.score:
+                    seq.cipher = save_cipher
+                    seq.decoded_words = save_decode
+                    seq.score = fitness_before
                 else:
-                    counter_not_changed = 0
+                    save_cipher = seq.cipher
+                    save_decode = seq.decoded_words
+                    fitness_before = seq.score
+        fitness_scores = [seq.score for seq in population]
+        # add the generation to the array that will be showned in the plot.
+        average_scores.append(sum(fitness_scores) // len(fitness_scores))
+        max_scores.append(max(fitness_scores))
         offspring = []
         replicate_num = int(REPLICATION * POPULATION_SIZE)
         fitness_scores_replicate = fitness_scores.copy()
@@ -305,7 +305,6 @@ def lamark_genetic(encoded, dict, letter_freq, couples_freq):
                 parent1 = random.choices(population, weights=fitness_scores)[0]
             # create a new solution by crossing over the parents.
             child = crossover(parent1, parent2, encoded)
-            child.mutate(encoded)
             offspring.append(child)
         # Replace population with offspring
         population = offspring
@@ -314,10 +313,10 @@ def lamark_genetic(encoded, dict, letter_freq, couples_freq):
     save_solution(population[best_index])
     plot_max(max_scores)
     plot_average(average_scores)
-    return generation + 1
+    return generation + 2
 
 
 if __name__ == '__main__':
     encoded, dict, letter_freq, couples_freq = open_freq_files()
-    number_of_generation = basic_genetic(encoded, dict, letter_freq, couples_freq)
+    number_of_generation = lamark_genetic(encoded, dict, letter_freq, couples_freq)
     print(number_of_generation * POPULATION_SIZE)
