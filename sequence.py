@@ -32,6 +32,7 @@ class Sequence:
             a, b = random.sample(keys, 2)
             # swap their values in the cipher
             self.cipher[a], self.cipher[b] = self.cipher[b], self.cipher[a]
+
         self.decoded_words = []
         for word in encoded:
             decoded_word = ""
@@ -62,12 +63,3 @@ class Sequence:
         self.score = score
         return score
 
-    # check if the cipher is a bijection.
-    def check_bijection(self):
-        # check that the cipher is still a bijection
-        values = set()
-        for value in self.cipher.values():
-            if value in values:
-                return False
-            values.add(value)
-        return True
