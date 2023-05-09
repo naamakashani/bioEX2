@@ -3,6 +3,12 @@ import string
 
 MUTATION_RATE = 0.05
 alphabet = string.ascii_lowercase
+Counter_fitness = 0
+
+
+def get_counter_fitness():
+    return Counter_fitness
+
 
 class Sequence:
     def __init__(self, encoded, cipher):
@@ -23,8 +29,6 @@ class Sequence:
                     decoded_word += self.cipher[letter]
             self.decoded_words.append(decoded_word)
 
-
-
     def mutate(self, encoded):
         num_of_mutation = int(MUTATION_RATE * len(self.cipher))
         for i in range(num_of_mutation):
@@ -41,10 +45,10 @@ class Sequence:
                     decoded_word += self.cipher[letter]
             self.decoded_words.append(decoded_word)
 
-
     def fitness(self, dict, letters_freq, couples_freq):
         score = 0.0
-
+        global Counter_fitness
+        Counter_fitness += 1
         # Score the frequency of individual letters
         for word in self.decoded_words:
             for letter in word:
@@ -62,4 +66,3 @@ class Sequence:
                 score += 1
         self.score = score
         return score
-

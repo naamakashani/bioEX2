@@ -1,5 +1,8 @@
-from sequence import *
 import matplotlib.pyplot as plt
+
+from sequence import *
+
+
 
 MUTATION_RATE = 0.05
 alphabet = string.ascii_lowercase
@@ -120,6 +123,7 @@ def plot_max(max_scores):
     plt.bar(x_values, y_values, color='blue')
     plt.xticks(x_values, string_value)
     plt.xlabel('Iteration')
+    plt.xticks(rotation=90)
     plt.ylabel('Value')
     plt.title('Max scores in iterations')
     # Show the plot
@@ -137,6 +141,7 @@ def plot_average(average_scores):
 
     plt.bar(x_values, y_values, color='red')
     plt.xticks(x_values, string_value)
+    plt.xticks(rotation=90)
     plt.xlabel('Iteration')
     plt.ylabel('Value')
     plt.title('Average scores in iterations')
@@ -145,6 +150,8 @@ def plot_average(average_scores):
 
 
 def basic_genetic(encoded, dict, letter_freq, couples_freq):
+    # initialize the population
+    global Counter_fitness
     population = []
     for i in range(POPULATION_SIZE):
         # send the encoded message to the constructor and return a random solution with the text decoded.
@@ -153,9 +160,7 @@ def basic_genetic(encoded, dict, letter_freq, couples_freq):
         population.append(seq)
     average_scores = []
     max_scores = []
-    counter = 0
-    counter_not_changed = 0
-
+    replicate_best = []
     # run over the generations and try to improve the solution.
     for generation in range(NUM_GENERATIONS):
         # give score to each solution in the population.
@@ -171,6 +176,22 @@ def basic_genetic(encoded, dict, letter_freq, couples_freq):
             best_index = fitness_scores.index(max(fitness_scores_replicate))
             offspring.append(population[best_index])
             fitness_scores_replicate[best_index] = -1
+        replicate_best = offspring.copy()
+        # check if in the offspring there is same score
+        best_score = max(fitness_scores)
+        for i in range(len(offspring)):
+            flag1 = True
+            if offspring[i].score != best_score:
+                flag1 = False
+                break
+        if generation >= 100:
+            flag2 = True
+            # check if the best score is the same as the last 100 generations
+            if max_scores[generation - 95] != max_scores[generation]:
+                flag2 = False
+        else:
+            flag2 = False
+        print(max_scores[generation])
         for i in range(POPULATION_SIZE - replicate_num):
             parent1 = random.choices(population, weights=fitness_scores)[0]
             parent2 = random.choices(population, weights=fitness_scores)[0]
@@ -182,12 +203,14 @@ def basic_genetic(encoded, dict, letter_freq, couples_freq):
             offspring.append(child)
         # Replace population with offspring
         population = offspring
-    fitness_scores = [seq.fitness(dict, letter_freq, couples_freq) for seq in population]
-    best_index = fitness_scores.index(max(fitness_scores))
-    save_solution(population[best_index])
+        print(get_counter_fitness())
+        if flag1 and flag2:
+            break
+    # get the last solution that in max score.
+    print(replicate_best[0].score)
+    save_solution(replicate_best[0])
     plot_max(max_scores)
     plot_average(average_scores)
-    return generation + 2
 
 
 def darwin_genetic(encoded, dict, letter_freq, couples_freq):
@@ -249,12 +272,12 @@ def darwin_genetic(encoded, dict, letter_freq, couples_freq):
             offspring.append(child)
         # Replace population with offspring
         population = offspring
+        print(get_counter_fitness())
     fitness_scores = [seq.fitness(dict, letter_freq, couples_freq) for seq in population]
     best_index = fitness_scores.index(max(fitness_scores))
     save_solution(population[best_index])
     plot_max(max_scores)
     plot_average(average_scores)
-    return generation + 2
 
 
 def lamark_genetic(encoded, dict, letter_freq, couples_freq):
@@ -308,15 +331,14 @@ def lamark_genetic(encoded, dict, letter_freq, couples_freq):
             offspring.append(child)
         # Replace population with offspring
         population = offspring
+        print(get_counter_fitness())
     fitness_scores = [seq.fitness(dict, letter_freq, couples_freq) for seq in population]
     best_index = fitness_scores.index(max(fitness_scores))
     save_solution(population[best_index])
     plot_max(max_scores)
     plot_average(average_scores)
-    return generation + 2
 
 
 if __name__ == '__main__':
     encoded, dict, letter_freq, couples_freq = open_freq_files()
-    number_of_generation = lamark_genetic(encoded, dict, letter_freq, couples_freq)
-    print(number_of_generation * POPULATION_SIZE)
+    basic_genetic(encoded, dict, letter_freq, couples_freq)
