@@ -29,6 +29,14 @@ class Sequence:
                     decoded_word += self.cipher[letter]
             self.decoded_words.append(decoded_word)
 
+    def copy(self):
+        # create a new Sequence object with the same encoded message and cipher
+        new_sequence = Sequence(encoded=[], cipher=self.cipher.copy())
+        # copy over the decoded words and fitness score
+        new_sequence.decoded_words = self.decoded_words.copy()
+        new_sequence.score = self.score
+        return new_sequence
+
     def mutate(self, encoded):
         num_of_mutation = int(MUTATION_RATE * len(self.cipher))
         for i in range(num_of_mutation):
@@ -61,8 +69,10 @@ class Sequence:
                 pair = word[i:i + 2]
                 if pair.upper() in couples_freq:
                     score += couples_freq[pair.upper()]
+        dict_copy = dict.copy()
         for word in self.decoded_words:
-            if word in dict:
-                score += 1
+            if word in dict_copy:
+                dict_copy.remove(word)
+                score += len(word)
         self.score = score
         return score

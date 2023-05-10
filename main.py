@@ -2,14 +2,12 @@ import matplotlib.pyplot as plt
 
 from sequence import *
 
-
-
 MUTATION_RATE = 0.05
 alphabet = string.ascii_lowercase
 POPULATION_SIZE = 100
-NUM_GENERATIONS = 600
-REPLICATION = 0.05
-N = 5
+NUM_GENERATIONS = 200
+REPLICATION = 0.15
+N = 1
 
 
 def open_freq_files():
@@ -152,15 +150,10 @@ def plot_average(average_scores):
 def basic_genetic(encoded, dict, letter_freq, couples_freq):
     # initialize the population
     global Counter_fitness
-    population = []
-    for i in range(POPULATION_SIZE):
-        # send the encoded message to the constructor and return a random solution with the text decoded.
-        seq = Sequence(encoded, None)
-        # add solution to the population.
-        population.append(seq)
+    population = init_start([])
     average_scores = []
     max_scores = []
-    replicate_best = []
+    best_solution = None
     # run over the generations and try to improve the solution.
     for generation in range(NUM_GENERATIONS):
         # give score to each solution in the population.
@@ -176,169 +169,186 @@ def basic_genetic(encoded, dict, letter_freq, couples_freq):
             best_index = fitness_scores.index(max(fitness_scores_replicate))
             offspring.append(population[best_index])
             fitness_scores_replicate[best_index] = -1
-        replicate_best = offspring.copy()
-        # check if in the offspring there is same score
-        best_score = max(fitness_scores)
-        for i in range(len(offspring)):
-            flag1 = True
-            if offspring[i].score != best_score:
-                flag1 = False
-                break
-        if generation >= 100:
-            flag2 = True
-            # check if the best score is the same as the last 100 generations
-            if max_scores[generation - 95] != max_scores[generation]:
-                flag2 = False
-        else:
-            flag2 = False
-        print(max_scores[generation])
+            if i == 0:
+                best_solution = offspring[0].copy()
         for i in range(POPULATION_SIZE - replicate_num):
-            parent1 = random.choices(population, weights=fitness_scores)[0]
-            parent2 = random.choices(population, weights=fitness_scores)[0]
-            while parent1 == parent2:
-                parent1 = random.choices(population, weights=fitness_scores)[0]
+            tournament_size = 5
+            tournament = random.sample(population, tournament_size)
+            # Choose the individual with the highest fitness score as the winner
+            winner = max(tournament, key=lambda x: x.score)
+            tournament = random.sample(population, tournament_size)
+            # Choose the individual with the highest fitness score as the winner
+            winner2 = max(tournament, key=lambda x: x.score)
             # create a new solution by crossing over the parents.
-            child = crossover(parent1, parent2, encoded)
+            child = crossover(winner, winner2, encoded)
             child.mutate(encoded)
             offspring.append(child)
         # Replace population with offspring
         population = offspring
+        print(max_scores[generation])
         print(get_counter_fitness())
-        if flag1 and flag2:
-            break
+        if generation >= 100:
+            flag = stop_run(fitness_scores, generation, max_scores, offspring)
+            if flag:
+                break
     # get the last solution that in max score.
-    print(replicate_best[0].score)
-    save_solution(replicate_best[0])
+    save_solution(best_solution)
     plot_max(max_scores)
     plot_average(average_scores)
 
 
-def darwin_genetic(encoded, dict, letter_freq, couples_freq):
-    population = []
+def init_start(population):
     for i in range(POPULATION_SIZE):
         # send the encoded message to the constructor and return a random solution with the text decoded.
         seq = Sequence(encoded, None)
         # add solution to the population.
         population.append(seq)
+    return population
+
+
+def try_better(population):
+    start_population = []
+    new_population = []
+    old_population = []
+    for z in range(len(population)):
+        start_population.append(population[z].copy())
+        old_population.append(population[z].copy())
+    for k in range(POPULATION_SIZE):
+        for j in range(N):
+            population[k].mutate(encoded)
+            population[k].fitness(dict, letter_freq, couples_freq)
+            if j == N - 1:
+                if population[k].score > old_population[k].score:
+                    new_population.append(population[k])
+                else:
+                    new_population.append(old_population[k])
+            else:
+                if population[k].score > old_population[k].score:
+                    old_population[k] = population[k]
+    return new_population, start_population
+
+
+def stop_run(fitness_scores, generation, max_scores, offspring):
+    best_score = max(fitness_scores)
+    count = 0
+    flag1 = True
+    for i in range(len(offspring)):
+        if offspring[i].score != best_score:
+            count += 1
+            if count == 3:
+                flag1 = False
+                break
+    if generation >= 100:
+        flag2 = True
+        # check if the best score is the same as the last 100 generations
+        if max_scores[generation - 80] != max_scores[generation]:
+            flag2 = False
+    else:
+        flag2 = False
+    if flag1 and flag2:
+        return True
+
+
+def drawin_gentic(encoded, dict, letter_freq, couples_freq):
+    global Counter_fitness
+    population = init_start([])
+    # initialize the population
     average_scores = []
     max_scores = []
-    counter = 0
-    counter_not_changed = 0
-
-    # run over the generations and try to improve the solution.
+    best_solution = None
+    replicate_num = int(REPLICATION * POPULATION_SIZE)
     for generation in range(NUM_GENERATIONS):
+        offspring = []
         # give score to each solution in the population.
         fitness_scores = [seq.fitness(dict, letter_freq, couples_freq) for seq in population]
         # add the generation to the array that will be showned in the plot.
         average_scores.append(sum(fitness_scores) // len(fitness_scores))
         max_scores.append(max(fitness_scores))
-        offspring = []
-        replicate_num = int(REPLICATION * POPULATION_SIZE)
         fitness_scores_replicate = fitness_scores.copy()
         for i in range(replicate_num):
             # find the best solution in the population and add it to the offspring.
             best_index = fitness_scores.index(max(fitness_scores_replicate))
-            offspring.append(population[best_index])
+            offspring.append(population[best_index].copy())
             fitness_scores_replicate[best_index] = -1
+            if i == 0:
+                best_solution = offspring[0].copy()
+        # try to go better with it can improve the solution.
+        new_population, start_population = try_better(population)
+        for i in range(POPULATION_SIZE):
+            start_population[i].score = new_population[i].score
+        fitness_scores = [seq.score for seq in new_population]
         for i in range(POPULATION_SIZE - replicate_num):
-            parent1 = random.choices(population, weights=fitness_scores)[0]
-            parent2 = random.choices(population, weights=fitness_scores)[0]
-            while parent1 == parent2:
-                parent1 = random.choices(population, weights=fitness_scores)[0]
+            tournament_size = 3
+            tournament = random.sample(start_population, tournament_size)
+            # Choose the individual with the highest fitness score as the winner
+            winner = max(tournament, key=lambda x: x.score)
+            tournament = random.sample(start_population, tournament_size)
+            # Choose the individual with the highest fitness score as the winner
+            winner2 = max(tournament, key=lambda x: x.score)
+            while winner == winner2:
+                tournament = random.sample(start_population, tournament_size)
+                winner2 = max(tournament, key=lambda x: x.score)
             # create a new solution by crossing over the parents.
-            child = crossover(parent1, parent2, encoded)
-
-            # save the child before make mutations
-            save_cipher = child.cipher
-            save_decode = child.decoded_words
-            temp_cipher = save_cipher
-            temp_decode = save_decode
-            fitness_before = child.fitness(dict, letter_freq, couples_freq)
-            for i in range(N):
-                # try to improve
-                child.mutate(encoded)
-                fitness_after = child.fitness(dict, letter_freq, couples_freq)
-                # if mutation not improve unmutate
-                if (fitness_before >= fitness_after):
-                    child.cipher = save_cipher
-                    child.decoded_words = save_decode
-                else:
-                    fitness_before = fitness_after
-                    save_cipher = child.cipher
-                    save_decode = child.decode
-            child.cipher = temp_cipher
-            child_decode = save_decode
-
+            child = crossover(winner, winner2, encoded)
             offspring.append(child)
-        # Replace population with offspring
         population = offspring
+        if generation >= 100:
+            stop_run(fitness_scores, generation, max_scores, offspring)
         print(get_counter_fitness())
-    fitness_scores = [seq.fitness(dict, letter_freq, couples_freq) for seq in population]
-    best_index = fitness_scores.index(max(fitness_scores))
-    save_solution(population[best_index])
+        print(max_scores[generation])
+    #   save result.
+    save_solution(best_solution)
     plot_max(max_scores)
     plot_average(average_scores)
 
-
 def lamark_genetic(encoded, dict, letter_freq, couples_freq):
-    population = []
-    for i in range(POPULATION_SIZE):
-        # send the encoded message to the constructor and return a random solution with the text decoded.
-        seq = Sequence(encoded, None)
-        # add solution to the population.
-        population.append(seq)
+    global Counter_fitness
+    population = init_start([])
+    # initialize the population
     average_scores = []
     max_scores = []
-    # run over the generations and try to improve the solution.
+    best_solution = None
+    replicate_num = int(REPLICATION * POPULATION_SIZE)
     for generation in range(NUM_GENERATIONS):
-        [seq.fitness(dict, letter_freq, couples_freq) for seq in population]
-        for seq in population:
-            save_cipher = seq.cipher
-            save_decode = seq.decoded_words
-            fitness_before = seq.score
-            for i in range(N):
-                # try to improve
-                seq.mutate(encoded)
-                seq.fitness(dict, letter_freq, couples_freq)
-                # if mutation not improve unmutate
-                if fitness_before >= seq.score:
-                    seq.cipher = save_cipher
-                    seq.decoded_words = save_decode
-                    seq.score = fitness_before
-                else:
-                    save_cipher = seq.cipher
-                    save_decode = seq.decoded_words
-                    fitness_before = seq.score
-        fitness_scores = [seq.score for seq in population]
+        offspring = []
+        # give score to each solution in the population.
+        fitness_scores = [seq.fitness(dict, letter_freq, couples_freq) for seq in population]
         # add the generation to the array that will be showned in the plot.
         average_scores.append(sum(fitness_scores) // len(fitness_scores))
         max_scores.append(max(fitness_scores))
-        offspring = []
-        replicate_num = int(REPLICATION * POPULATION_SIZE)
         fitness_scores_replicate = fitness_scores.copy()
         for i in range(replicate_num):
             # find the best solution in the population and add it to the offspring.
             best_index = fitness_scores.index(max(fitness_scores_replicate))
-            offspring.append(population[best_index])
+            offspring.append(population[best_index].copy())
             fitness_scores_replicate[best_index] = -1
+            if i == 0:
+                best_solution = offspring[0].copy()
+        # try to go better with it can improve the solution.
+        new_population, start_population = try_better(population)
+        fitness_scores = [seq.score for seq in new_population]
         for i in range(POPULATION_SIZE - replicate_num):
-            parent1 = random.choices(population, weights=fitness_scores)[0]
-            parent2 = random.choices(population, weights=fitness_scores)[0]
-            while parent1 == parent2:
-                parent1 = random.choices(population, weights=fitness_scores)[0]
+            tournament_size = 5
+            tournament = random.sample(new_population, tournament_size)
+            # Choose the individual with the highest fitness score as the winner
+            winner = max(tournament, key=lambda x: x.score)
+            tournament = random.sample(new_population, tournament_size)
+            # Choose the individual with the highest fitness score as the winner
+            winner2 = max(tournament, key=lambda x: x.score)
             # create a new solution by crossing over the parents.
-            child = crossover(parent1, parent2, encoded)
+            child = crossover(winner, winner2, encoded)
             offspring.append(child)
-        # Replace population with offspring
         population = offspring
+        if generation >= 100:
+            stop_run(fitness_scores, generation, max_scores, offspring)
         print(get_counter_fitness())
-    fitness_scores = [seq.fitness(dict, letter_freq, couples_freq) for seq in population]
-    best_index = fitness_scores.index(max(fitness_scores))
-    save_solution(population[best_index])
+        print(max_scores[generation])
+    #   save result.
+    save_solution(best_solution)
     plot_max(max_scores)
     plot_average(average_scores)
 
 
 if __name__ == '__main__':
     encoded, dict, letter_freq, couples_freq = open_freq_files()
-    basic_genetic(encoded, dict, letter_freq, couples_freq)
+    drawin_gentic(encoded, dict, letter_freq, couples_freq)
