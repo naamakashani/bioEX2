@@ -4,9 +4,9 @@ from sequence import *
 
 MUTATION_RATE = 0.05
 alphabet = string.ascii_lowercase
-POPULATION_SIZE = 100
+POPULATION_SIZE = 400
 NUM_GENERATIONS = 200
-REPLICATION = 0.15
+REPLICATION = 0.05
 N = 1
 
 
