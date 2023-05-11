@@ -4,10 +4,10 @@ from sequence import *
 
 MUTATION_RATE = 0.05
 alphabet = string.ascii_lowercase
-POPULATION_SIZE = 400
-NUM_GENERATIONS = 200
+POPULATION_SIZE = 500
+NUM_GENERATIONS = 500
 REPLICATION = 0.05
-N = 1
+N = 5
 
 
 def open_freq_files():
@@ -51,6 +51,7 @@ def crossover(parent1, parent2, encoded):
     for word in encoded:
         for letter in word:
             if letter not in organized_cipher_parent1.keys() and letter in alphabet:
+                organized_cipher_parent1[letter] = parent1.cipher[letter]
                 organized_cipher_parent1[letter] = parent1.cipher[letter]
 
     organized_cipher_parent2 = {}
@@ -216,6 +217,24 @@ def try_better(population):
     for k in range(POPULATION_SIZE):
         for j in range(N):
             population[k].mutate(encoded)
+        population[k].fitness(dict, letter_freq, couples_freq)
+        if population[k].score > old_population[k].score:
+            new_population.append(population[k])
+        else:
+            new_population.append(old_population[k])
+
+    return new_population, start_population
+
+def try_better_2(population):
+    start_population = []
+    new_population = []
+    old_population = []
+    for z in range(len(population)):
+        start_population.append(population[z].copy())
+        old_population.append(population[z].copy())
+    for k in range(POPULATION_SIZE):
+        for j in range(N):
+            population[k].mutate(encoded)
             population[k].fitness(dict, letter_freq, couples_freq)
             if j == N - 1:
                 if population[k].score > old_population[k].score:
@@ -227,21 +246,21 @@ def try_better(population):
                     old_population[k] = population[k]
     return new_population, start_population
 
-
 def stop_run(fitness_scores, generation, max_scores, offspring):
     best_score = max(fitness_scores)
+    replicate_num = int(REPLICATION * POPULATION_SIZE)
     count = 0
     flag1 = True
     for i in range(len(offspring)):
         if offspring[i].score != best_score:
             count += 1
-            if count == 3:
+            if count == replicate_num - 3:
                 flag1 = False
                 break
     if generation >= 100:
         flag2 = True
         # check if the best score is the same as the last 100 generations
-        if max_scores[generation - 80] != max_scores[generation]:
+        if max_scores[generation - 40] != max_scores[generation]:
             flag2 = False
     else:
         flag2 = False
@@ -290,16 +309,18 @@ def drawin_gentic(encoded, dict, letter_freq, couples_freq):
                 winner2 = max(tournament, key=lambda x: x.score)
             # create a new solution by crossing over the parents.
             child = crossover(winner, winner2, encoded)
+            child.mutate(encoded)
             offspring.append(child)
         population = offspring
-        if generation >= 100:
-            stop_run(fitness_scores, generation, max_scores, offspring)
+        #if generation >= 100:
+            #stop_run(fitness_scores, generation, max_scores, offspring)
         print(get_counter_fitness())
         print(max_scores[generation])
     #   save result.
     save_solution(best_solution)
     plot_max(max_scores)
     plot_average(average_scores)
+
 
 def lamark_genetic(encoded, dict, letter_freq, couples_freq):
     global Counter_fitness
@@ -337,6 +358,7 @@ def lamark_genetic(encoded, dict, letter_freq, couples_freq):
             winner2 = max(tournament, key=lambda x: x.score)
             # create a new solution by crossing over the parents.
             child = crossover(winner, winner2, encoded)
+            child.mutate(encoded)
             offspring.append(child)
         population = offspring
         if generation >= 100:
