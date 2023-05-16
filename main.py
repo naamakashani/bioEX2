@@ -319,7 +319,7 @@ def stop_run(fitness_scores, generation, max_scores, offspring):
     if generation >= 100:
         flag2 = True
         # check if the best score is the same as the last 100 generations
-        if max_scores[generation - 40] != max_scores[generation]:
+        if max_scores[generation - 50] != max_scores[generation]:
             flag2 = False
     else:
         flag2 = False
