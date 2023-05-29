@@ -5,8 +5,8 @@ import string
 MUTATION_RATE = 0.05
 alphabet = string.ascii_lowercase
 POPULATION_SIZE = 100
-NUM_GENERATIONS = 200
-REPLICATION = 0.05
+NUM_GENERATIONS = 350
+REPLICATION = 0.15
 N = 5
 
 
